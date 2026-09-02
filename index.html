@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orian Voice Assistant</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: #1e1e1e;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 { color: #00adb5; font-size: 2.5rem; margin-bottom: 10px; }
+        .status { color: #888; font-style: italic; margin-bottom: 20px; }
+        .output-box {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 50px;
+            margin-top: 20px;
+            text-align: left;
+            border-left: 5px solid #00adb5;
+        }
+        .visualizer {
+            width: 60px;
+            height: 60px;
+            background: #00adb5;
+            border-radius: 50%;
+            margin: 20px auto;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+        iframe {
+            display: none; /* Embedded player hidden or can be visible if playing music */
+            margin-top: 20px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Orian Assistant</h1>
+    <p id="status" class="status">Click anywhere to activate microphone...</p>
+    <div class="visualizer" id="visualizer" style="animation-play-state: paused;"></div>
+    
+    <div class="output-box">
+        <strong>You said:</strong> <span id="transcript">...</span>
+    </div>
+    <div class="output-box">
+        <strong>Orian:</strong> <span id="response">Waiting for "Orian..."</span>
+    </div>
+
+    <!-- Hidden YouTube Player Container for media control -->
+    <div id="player-container"></div>
+</div>
+
+<script>
+    // Initialize Speech Recognition and Synthesis
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+    
+    if (!SpeechRecognition) {
+        alert("Your browser does not support Web Speech API. Please use Chrome or Edge.");
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    const statusText = document.getElementById('status');
+    const transcriptText = document.getElementById('transcript');
+    const responseText = document.getElementById('response');
+    const visualizer = document.getElementById('visualizer');
+    
+    let youtubePlayer = null; // To hold the YouTube API player instance
+
+    // Load YouTube Iframe Player API for media control (play, pause, etc.)
+    const tag = document.createElement('script');
+    tag.src = "https://youtube.com";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    function onYouTubeIframeAPIReady() {
+        // API loaded, ready to create player dynamically when commanded
+    }
+
+    // Start listening on user interaction (browser security requirement)
+    document.body.addEventListener('click', () => {
+        recognition.start();
+        statusText.innerText = "Listening for 'Orian...'";
+        visualizer.style.animationPlayState = 'running';
+    });
+
+    recognition.onresult = (event) => {
+        const resultIndex = event.resultIndex;
+        const transcript = event.results[resultIndex][0].transcript.trim().toLowerCase();
+        transcriptText.innerText = transcript;
+
+        // CRITICAL CHECK: Only respond if it starts with the wake word "orian"
+        if (transcript.startsWith('orian')) {
+            // Strip the wake word to isolate the actual command
+            const command = transcript.replace('orian', '').trim();
+            handleCommand(command);
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+    };
+
+    // Restart recognition if it ends automatically
+    recognition.onend = () => {
+        recognition.start();
+    };
+
+    // Text to Speech Function
+    function speak(text) {
+        // Temporarily pause recognition so it doesn't hear itself speak
+        recognition.stop();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.onend = () => {
+            recognition.start(); // Resume listening after speaking
+        };
+        window.speechSynthesis.speak(utterance);
+        responseText.innerText = text;
+    }
+
+    // Command Router
+    function handleCommand(command) {
+        if (!command) {
+            speak("Yes, I am listening.");
+            return;
+        }
+
+        // 1. YouTube & YouTube Music Play Command
+        if (command.includes('play') || command.includes('search youtube')) {
+            const searchQuery = command.replace('play', '').replace('search youtube', '').trim();
+            speak(`Playing ${searchQuery} on YouTube`);
+            
+            // For a pure HTML setup, we search via Google/YouTube or embed a player
+            // Here, we redirect the window to play it directly, or you can dynamically embed it.
+            window.open(`https://youtube.com{encodeURIComponent(searchQuery)}`, '_blank');
+            return;
+        }
+
+        // 2. Media Controls (Pause / Resume)
+        if (command.includes('pause') || command.includes('stop')) {
+            speak("Pausing media.");
+            // Note: Controlling an external tab opened via window.open is restricted by browsers.
+            // If you use an embedded <iframe>, you would call: youtubePlayer.pauseVideo();
+            return;
+        }
+        
+        if (command.includes('resume') || command.includes('continue')) {
+            speak("Resuming media.");
+            return;
+        }
+
+        // 3. Google Search Command
+        if (command.includes('google') || command.includes('search for')) {
+            const searchQuery = command.replace('google', '').replace('search for', '').trim();
+            speak(`Searching Google for ${searchQuery}`);
+            window.open(`https://google.com{encodeURIComponent(searchQuery)}`, '_blank');
+            return;
+        }
+
+        // 4. Truecaller Application limitation notice
+        if (command.includes('truecaller') || command.includes('call') || command.includes('search number')) {
+            speak("Web browsers cannot directly access Truecaller data due to security protocols.");
+            return;
+        }
+
+        // Default fallback response
+        speak(`I heard you say: ${command}. I'm not sure how to handle that command yet.`);
+    }
+</script>
+
+</body>
+</html>
