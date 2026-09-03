@@ -3,125 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orian Voice Dialer</title>
+    <title>Orion Voice Dialer</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px 20px;
-            background-color: #f4f7f6;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 50px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #cccccc;
-        }
-        #status {
-            margin-top: 20px;
-            font-weight: bold;
-            color: #555;
-        }
-        #transcript {
-            margin-top: 10px;
-            font-style: italic;
-            color: #888;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #121212; color: white; }
+        button { padding: 15px 30px; font-size: 18px; border: none; border-radius: 25px; background: #007bff; color: white; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #status { margin-top: 20px; font-size: 20px; color: #00ffcc; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Orian Voice Assistant</h2>
-    <p>Tap the button and say: <br><strong>"Orian call [Contact Name]"</strong></p>
-    
-    <button id="start-btn">Activate Orian</button>
-    <div id="status">Status: Ready</div>
-    <div id="transcript"></div>
-</div>
+    <h1>Orion Voice Assistant</h1>
+    <p>Tap the button and say: <strong>"Orion call [Name]"</strong></p>
+    <button id="start-btn">🎙️ Speak Now</button>
+    <div id="status">Ready...</div>
 
-<script>
-    // 1. DEFINE YOUR CONTACTS HERE
-    // Format: "name in lowercase": "phone number"
-    const myContacts = {
-        "john doe": "+1234567890",
-        "jane smith": "+0987654321",
-        "mom": "+1122334455"
-    };
+    <script>
+        // 1. Define your contact list (Websites cannot read phone contacts directly)
+        const contacts = {
+            "amma": "+9003191810",
+            "shakti": "+6374448927",
+            "mugilan": "+9566751717",
+            "daddy": "+9841619013",
+            "rudresh": "+9384607551",
+            "jishnu": "+9150200721",
+            "rajasingam": "+8667540150",
+            "pinni": "+9710471929",
+            "hanshuja": "+9043595965",
+            "ashwin": "+6374434604",
+            "emaan": "+8190060577",
+            "akshay": "+9500180925",
+            "advaith": "+7339024508",
+            "sahana": "+9940106585",
+            "ashwanth": "+8939531882",
+            "ananya": "+9500122895",
+            "faisal": "+7305708782",
+            "maarthi": "+8072712795",
+            "sandeep": "+8122097312",
+            "sri charan": "+9150979040",
+            "vidur": "+9841235915",
+            "vaidhesh": "+9345846715",
+            "tharini": "+8148322516",
+            "nimisha": "+9150172220",
+            "prathya": "+8122855747",
+            "aditya s": "+6383570866",
+            "aditya k": "+9940500279"  
+        };
 
-    const startBtn = document.getElementById('start-btn');
-    const statusDiv = document.getElementById('status');
-    const transcriptDiv = document.getElementById('transcript');
+        const startBtn = document.getElementById('start-btn');
+        const statusDiv = document.getElementById('status');
 
-    // 2. CHECK FOR WEB SPEECH API SUPPORT
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-        statusDiv.textContent = "Error: Your browser does not support voice recognition.";
-        startBtn.disabled = true;
-    } else {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+        // 2. Initialize Voice Recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            statusDiv.innerText = "Error: Your browser does not support voice recognition.";
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
 
-        startBtn.addEventListener('click', () => {
-            recognition.start();
-            statusDiv.textContent = "Listening...";
-            transcriptDiv.textContent = "";
-        });
+            startBtn.addEventListener('click', () => {
+                statusDiv.innerText = "Listening for 'Orion call...'";
+                recognition.start();
+            });
 
-        recognition.onresult = (event) => {
-            const speechResult = event.results[0][0].transcript.toLowerCase().trim();
-            transcriptDiv.textContent = `You said: "${speechResult}"`;
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript.toLowerCase().trim();
+                statusDiv.innerText = `You said: "${command}"`;
+                parseCommand(command);
+            };
 
-            // 3. PARSE THE COMMAND ("orian call [name]")
-            const trigger = "orian call";
-            
-            if (speechResult.startsWith(trigger)) {
-                // Extract the contact name after "orian call "
-                const contactName = speechResult.replace(trigger, "").trim();
+            recognition.onerror = () => {
+                statusDiv.innerText = "Error trying to hear you. Try again.";
+            };
+        }
+
+        // 3. Parse the Voice Command
+        function parseCommand(command) {
+            // Check if command starts with "orion call"
+            if (command.startsWith("orion call")) {
+                // Extract the name after "orion call "
+                const name = command.replace("orion call", "").trim();
                 
-                if (myContacts[contactName]) {
-                    statusDiv.textContent = `Calling ${contactName}...`;
-                    // Redirect to the system phone dialer
-                    window.location.href = `tel:${myContacts[contactName]}`;
+                if (contacts[name]) {
+                    const phoneNumber = contacts[name];
+                    statusDiv.innerText = `Calling ${name}...`;
+                    
+                    // 4. Trigger the native phone call
+                    // Note: Browser security forces a system popup confirmation
+                    window.location.href = `tel:${phoneNumber}`;
                 } else {
-                    statusDiv.textContent = `Contact "${contactName}" not found in your list.`;
+                    statusDiv.innerText = `Contact "${name}" not found in Orion list.`;
                 }
             } else {
-                statusDiv.textContent = "Command not recognized. Try saying 'Orian call...'";
+                statusDiv.innerText = "Command not recognized. Say 'Orion call [Name]'.";
             }
-        };
-
-        recognition.onspeechend = () => {
-            recognition.stop();
-        };
-
-        recognition.onerror = (event) => {
-            statusDiv.textContent = `Error occurred: ${event.error}`;
-        };
-    }
-</script>
-
+        }
+    </script>
 </body>
 </html>
